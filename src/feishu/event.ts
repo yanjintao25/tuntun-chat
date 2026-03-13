@@ -11,6 +11,7 @@ const ENCRYPT_KEY = process.env.FEISHU_ENCRYPT_KEY || "";
  */
 router.post("/", async (req: Request, res: Response) => {
   const body = req.body as Record<string, unknown>;
+  console.log("[feishu] incoming event body:", JSON.stringify(body));
 
   // 1. URL 验证：飞书配置请求网址时会发 type=url_verification，需 1 秒内原样返回 challenge
   if (body.type === "url_verification") {
