@@ -37,6 +37,7 @@ cp .env.example .env
 - 在 [飞书开放平台](https://open.feishu.cn/app) 创建企业自建应用，开启机器人并申请消息权限。
 - 在「事件订阅」中配置请求网址：`http://本机:3000/feishu/event`（本地开发可用内网穿透如 ngrok/cpolar 暴露到公网）。
 - 订阅「接收消息 v2.0」事件。
+- **踩坑提示**：一定要在「权限管理」里开齐与 `im:message` 相关的权限（单聊消息、群聊 @ 消息、群内所有消息等），否则机器人收不到消息。
 
 详见 [docs/DESIGN.md](docs/DESIGN.md) 与 [docs/DEPLOY.md](docs/DEPLOY.md)。
 

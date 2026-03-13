@@ -14,10 +14,16 @@ export async function handleMessageReceived(payload: MessageReceivePayload): Pro
 
   const text = parseMessageContent(msg.content, msg.message_type);
   if (!text || !text.trim()) return;
-
   const chatId = msg.chat_id;
   const messageId = msg.message_id;
   const openId = sender.sender_id.open_id;
+
+  // 先快速回一条确认消息，提升主观响应速度
+  try {
+    await replyMessage(chatId, messageId, "我收到啦，正在帮你处理这条消息～");
+  } catch (e) {
+    console.error("[message-handler] quick ack failed", e);
+  }
 
   const config = getFeatureConfig();
   let reply: string;
