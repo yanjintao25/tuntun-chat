@@ -1,6 +1,12 @@
 import type { EventPayload, MessageReceivePayload } from "./types";
 import { handleMessageReceived } from "./message-handler";
 
+/**
+ * 处理飞书事件
+ * 根据事件类型，调用不同的处理函数
+ * @param payload 飞书事件
+ * @returns void
+ */
 export async function handleEventPayload(payload: EventPayload): Promise<void> {
   const header = payload?.header as { type?: string; schema?: string } | undefined;
   const type = header?.type;

@@ -1,66 +1,95 @@
-# 部署指南（云服务器）
+# 部署指南
 
-## 一、前置条件
+## 一、两种部署方式
 
-- 一台有公网 IP 的云服务器（如阿里云、腾讯云、AWS）
-- 域名（可选，飞书事件订阅建议使用 HTTPS）
-- Node.js 18+
+| 方式 | 适用场景 | 是否需要公网 IP/域名 | 推荐 |
+|------|----------|----------------------|------|
+| **长连接** | 本地开发、云服务器均可 | 否，只需能访问外网 | ✅ |
+| **Webhook** | 云服务器，需要 HTTP 入口 | 是，需公网地址或域名 | 备选 |
+
+推荐优先使用**长连接**：无需公网 IP、域名、Nginx、HTTPS，本地或云服务器跑 `node dist/feishu/ws-client.js` 即可。
+
+---
 
 ## 二、飞书应用配置（开放平台）
 
 1. 登录 [飞书开放平台](https://open.feishu.cn/app)，创建**企业自建应用**。
 2. **凭证与基础信息**：记下 `App ID`、`App Secret`。
-3. **权限管理**：申请并发布：
-   - 消息与群组：`im:message`、`im:message.group_at_msg`、`im:message.p2p_msg`
+3. **权限管理**：申请并发布，**务必开齐 im:message 相关权限**：
+   - `im:message`（获取与发送消息）
+   - `im:message.p2p_msg:readonly`（单聊消息）
+   - `im:message.group_at_msg:readonly`（群聊 @ 消息）
    - 若启用日程/待办：按需申请日历、任务相关权限
 4. **事件订阅**：
-   - 启用「事件订阅」，选择 **Webhook**
-   - 请求网址：`https://你的域名/feishu/event`（或 `http://公网IP:端口/feishu/event`，部分环境要求 HTTPS）
-   - 订阅事件：勾选「接收消息 v2.0」
-   - 可选：填写 Verification Token、Encrypt Key（需在服务端配置并解密）
+   - 启用「事件订阅」
+   - **订阅方式** 二选一：
+     - **长连接**（推荐）：选择「使用长连接接收事件」，添加事件 `im.message.receive_v1`。  
+       注意：需先启动 `node dist/feishu/ws-client.js` 建立连接后，才能保存该配置。
+     - **Webhook**：选择「将事件发送至开发者服务器」，请求网址填 `https://你的域名/feishu/event`，订阅 `im.message.receive_v1`。
 
-## 三、服务器部署步骤
+> **踩坑记录**：若收不到消息，检查权限管理中是否已开通 `im:message.p2p_msg`、`im:message.group_at_msg` 等，缺一不可。
 
-### 1. 安装 Node 与克隆代码
+---
 
-```bash
-# 安装 Node 18+（以 Ubuntu 为例）
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-sudo apt-get install -y nodejs
+## 三、方式一：长连接部署（推荐）
 
-# 克隆或上传项目
-cd /opt  # 或你的目录
-git clone <你的仓库> tuntun-chat
-cd tuntun-chat
-```
+### 前置条件
 
-### 2. 环境变量
+- Node.js 18+
+- 本机或云服务器能访问外网（无需公网 IP 或域名）
+
+### 步骤
 
 ```bash
+cd /path/to/tuntun-chat
 cp .env.example .env
-# 编辑 .env，填入：
-# FEISHU_APP_ID、FEISHU_APP_SECRET、FEISHU_VERIFICATION_TOKEN、FEISHU_ENCRYPT_KEY（若启用）
-# OPENAI_API_KEY、OPENAI_BASE_URL（或国内大模型兼容接口）
-# PORT=3000
-```
+# 编辑 .env，填入 FEISHU_APP_ID、FEISHU_APP_SECRET、OPENAI_API_KEY、OPENAI_BASE_URL、OPENAI_MODEL
 
-### 3. 安装依赖与构建
-
-```bash
 npm install
 npm run build
+node dist/feishu/ws-client.js
 ```
 
-### 4. 使用 PM2 常驻
+### 云服务器常驻（可选）
 
 ```bash
-npm install -g pm2
-pm2 start dist/index.js --name tuntun-chat
+pm2 start dist/feishu/ws-client.js --name tuntun-chat
 pm2 save
-pm2 startup  # 按提示设置开机自启
+pm2 startup
 ```
 
-### 5. 反向代理（Nginx，推荐 HTTPS）
+### 后台配置 API（可选）
+
+若需要 `/admin/config` 接口，可同时启动 HTTP 服务：
+
+```bash
+pm2 start dist/index.js --name tuntun-chat-http
+```
+
+---
+
+## 四、方式二：Webhook 部署（云服务器）
+
+### 前置条件
+
+- 云服务器（公网 IP 或域名）
+- Node.js 18+
+- Nginx（推荐 HTTPS）
+
+### 步骤
+
+```bash
+cd /path/to/tuntun-chat
+cp .env.example .env
+# 编辑 .env，填入 FEISHU_APP_ID、FEISHU_APP_SECRET、FEISHU_VERIFICATION_TOKEN、FEISHU_ENCRYPT_KEY（若启用）
+# OPENAI_API_KEY、OPENAI_BASE_URL、OPENAI_MODEL、PORT=3000
+
+npm install
+npm run build
+pm2 start dist/index.js --name tuntun-chat
+```
+
+### Nginx 反向代理（HTTPS 推荐）
 
 ```nginx
 server {
@@ -90,16 +119,43 @@ server {
 
 重载 Nginx：`sudo nginx -t && sudo nginx -s reload`。
 
-## 四、验证
+---
 
-1. **健康检查**：`curl https://你的域名/health` 应返回 `{"status":"ok",...}`。
-2. **飞书验证**：在开放平台保存「请求网址」后，飞书会发 URL 验证请求，服务需在 1 秒内返回 `challenge`，保存后即验证通过。
-3. **发消息**：在飞书里把机器人拉进群或单聊，发送「你好」或「今天有什么日程」，应收到回复。
+## 五、环境变量说明
 
-## 五、后台配置功能开关
+| 变量 | 说明 |
+|------|------|
+| `FEISHU_APP_ID` | 飞书应用 App ID |
+| `FEISHU_APP_SECRET` | 飞书应用 App Secret |
+| `FEISHU_VERIFICATION_TOKEN` | 事件订阅验证 Token（Webhook 模式可选） |
+| `FEISHU_ENCRYPT_KEY` | 事件加密密钥（可选） |
+| `OPENAI_API_KEY` | 大模型 API Key（OpenAI 或硅基流动等） |
+| `OPENAI_BASE_URL` | 大模型 API 地址，如 `https://api.siliconflow.cn/v1` |
+| `OPENAI_MODEL` | 模型名，如 `Qwen/Qwen2.5-72B-Instruct` |
+| `PORT` | HTTP 服务端口（仅 Webhook 模式，默认 3000） |
 
-- 获取当前配置：`GET https://你的域名/admin/config`
-- 更新配置：`PUT https://你的域名/admin/config`，Body 示例：
+### 硅基流动示例
+
+```env
+OPENAI_API_KEY=sk-xxx
+OPENAI_BASE_URL=https://api.siliconflow.cn/v1
+OPENAI_MODEL=Qwen/Qwen2.5-72B-Instruct
+```
+
+---
+
+## 六、验证
+
+1. **长连接**：启动 `node dist/feishu/ws-client.js` 后，控制台应看到 `[ws] ws client ready`。
+2. **Webhook**：`curl https://你的域名/health` 应返回 `{"status":"ok",...}`。
+3. **发消息**：在飞书里单聊或群聊 @ 机器人发「你好」，应收到先确认再大模型回复。
+
+---
+
+## 七、后台配置功能开关
+
+- 获取配置：`GET http://localhost:3000/admin/config`（或你的域名）
+- 更新配置：`PUT http://localhost:3000/admin/config`，Body 示例：
 
 ```json
 {
@@ -109,4 +165,4 @@ server {
 }
 ```
 
-生产环境建议为 `/admin/*` 增加鉴权（如 API Key、登录态）。
+生产环境建议为 `/admin/*` 增加鉴权（如 API Key）。

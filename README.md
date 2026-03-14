@@ -43,6 +43,14 @@ cp .env.example .env
 
 ### 3. 本地运行
 
+- **长连接模式**（推荐，飞书订阅方式选「使用长连接接收事件」时）：
+
+```bash
+npm run dev:ws
+```
+
+- **Webhook 模式**（飞书订阅方式选「将事件发送至开发者服务器」时）：
+
 ```bash
 npm run dev
 ```
@@ -77,6 +85,7 @@ src/
 ## 文档
 
 - [架构与开发指南](docs/DESIGN.md)
+- [工程结构与扩展指南](docs/ARCHITECTURE.md)
 - [云服务器部署指南](docs/DEPLOY.md)
 
 ## 后续可扩展
