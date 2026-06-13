@@ -34,3 +34,19 @@ export async function replyMessage(
     },
   });
 }
+
+/**
+ * 主动向会话发送文本消息（定时提醒等场景）
+ * 文档: https://open.feishu.cn/document/server-docs/im-v1/message/create
+ */
+export async function sendTextToChat(chatId: string, text: string): Promise<void> {
+  const c = getClient();
+  await c.im.message.create({
+    params: { receive_id_type: "chat_id" },
+    data: {
+      receive_id: chatId,
+      msg_type: "text",
+      content: JSON.stringify({ text }),
+    },
+  });
+}

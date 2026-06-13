@@ -39,15 +39,23 @@
 
 ## 四、实现上的差异（参考当前代码）
 
-**日程管理**（`schedule.ts`）：
-- 从用户消息抽取：**标题、开始时间、结束时间、是否全天**
-- 调用飞书 `calendar_event` 创建日程
-- 返回：`已创建日程：xxx`
+**日程管理**（`features/schedule.ts`）— **占位，未接入 API**：
 
-**待办提醒**（`todo.ts`）：
-- 从用户消息抽取：**待办内容、提醒时间**
-- 创建待办并设置提醒（或写入 DB + 定时 job 推送）
-- 返回：`已添加待办：xxx，将在 N 分钟后提醒`
+- 计划从用户消息抽取：标题、开始时间、结束时间、是否全天
+- 计划调用飞书 `calendar_event` 创建日程
+- 计划返回：`已创建日程：xxx`
+
+**待办提醒**（`features/todo.ts` → `todo/`）— **已实现（自建表）**：
+
+| 步骤 | 实现 |
+|------|------|
+| 意图识别 | `runner` 识别 `[todo]` → `todo/extract.ts` LLM 输出 JSON |
+| 创建 | `todo/service.ts` 校验时间 → `todo/store.ts` 写入 `todos` |
+| 查询/完成/取消 | `service` 调 `store` 读写 |
+| 定时提醒 | `scheduler/reminder.ts` 每分钟扫描 → `sendTextToChat` 推送 |
+| 返回文案 | 如：`已添加待办：交报告。将在 6/14 08:45 提醒你` |
+
+未使用飞书 Task API；表结构见 [DATABASE.md](./DATABASE.md)。
 
 ---
 

@@ -2,6 +2,7 @@ import "dotenv/config";
 import express from "express";
 import { feishuEventRouter } from "./feishu/event";
 import { adminConfigRouter } from "./routes/admin-config";
+import { startTodoReminderScheduler } from "./scheduler/reminder";
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -19,6 +20,7 @@ app.get("/health", (_req, res) => {
 });
 
 app.listen(port, () => {
+  startTodoReminderScheduler();
   console.log(`[tuntun-chat] server listening on port ${port}`);
   console.log(`  - Feishu event: POST /feishu/event`);
   console.log(`  - Admin config: /admin/config`);

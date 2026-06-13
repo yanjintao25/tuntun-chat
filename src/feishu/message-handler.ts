@@ -31,6 +31,7 @@ export async function handleMessageReceived(payload: MessageReceivePayload): Pro
     reply = await runLLMAndActions({
       userMessage: text.trim(),
       openId,
+      chatId,
       enabledFeatures: config,
     });
   } catch (err) {

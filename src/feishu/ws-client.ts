@@ -2,6 +2,7 @@ import "dotenv/config";
 import * as Lark from "@larksuiteoapi/node-sdk";
 import { handleMessageReceived } from "./message-handler";
 import type { MessageReceivePayload } from "./types";
+import { startTodoReminderScheduler } from "../scheduler/reminder";
 
 export async function startFeishuWSClient() {
   const appId = process.env.FEISHU_APP_ID!;
@@ -64,6 +65,7 @@ export async function startFeishuWSClient() {
   });
 
   await wsClient.start({ eventDispatcher: dispatcher });
+  startTodoReminderScheduler();
   console.log("[ws] Feishu WS client started");
 }
 

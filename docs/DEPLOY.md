@@ -16,10 +16,10 @@
 1. 登录 [飞书开放平台](https://open.feishu.cn/app)，创建**企业自建应用**。
 2. **凭证与基础信息**：记下 `App ID`、`App Secret`。
 3. **权限管理**：申请并发布，**务必开齐 im:message 相关权限**：
-   - `im:message`（获取与发送消息）
+   - `im:message`（**获取与发送消息**——待办定时提醒需发送权限）
    - `im:message.p2p_msg:readonly`（单聊消息）
    - `im:message.group_at_msg:readonly`（群聊 @ 消息）
-   - 若启用日程/待办：按需申请日历、任务相关权限
+   - 若启用日程：按需申请日历相关权限（待办已用自建表，无需 Task API 权限）
 4. **事件订阅**：
    - 启用「事件订阅」
    - **订阅方式** 二选一：
@@ -58,6 +58,8 @@ pm2 save
 pm2 startup
 ```
 
+启动后控制台应看到 `[scheduler] todo reminder scheduler started`，表示待办定时扫描已运行。
+
 ### 后台配置 API（可选）
 
 若需要 `/admin/config` 接口，可同时启动 HTTP 服务：
@@ -88,6 +90,8 @@ npm install
 npm run build
 pm2 start dist/index.js --name tuntun-chat
 ```
+
+Webhook 模式下 `index.js` 同样会启动待办定时扫描。
 
 ### Nginx 反向代理（HTTPS 推荐）
 
@@ -146,9 +150,10 @@ OPENAI_MODEL=Qwen/Qwen2.5-72B-Instruct
 
 ## 六、验证
 
-1. **长连接**：启动 `node dist/feishu/ws-client.js` 后，控制台应看到 `[ws] ws client ready`。
+1. **长连接**：启动 `node dist/feishu/ws-client.js` 后，应看到 `[ws] Feishu WS client started` 与 scheduler 启动日志。
 2. **Webhook**：`curl https://你的域名/health` 应返回 `{"status":"ok",...}`。
-3. **发消息**：在飞书里单聊或群聊 @ 机器人发「你好」，应收到先确认再大模型回复。
+3. **对话**：单聊或群聊 @ 机器人发「你好」，应收到先确认再大模型回复。
+4. **待办**：发「提醒我 5 分钟后测试」→ 应回复已添加；到点后收到主动提醒（需发送消息权限）。查库时看 `due_at` / `remind_at` 是否为计划时间；`due_notified_at` 在到期通知发出前为空属正常（见 [DATABASE.md](./DATABASE.md) §2.5）。
 
 ---
 
